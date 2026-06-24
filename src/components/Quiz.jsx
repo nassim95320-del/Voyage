@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 
 const MAX_HP = 100
 
-export default function Quiz({ mission, onFinish }) {
+export default function Quiz({ mission, onFinish, playSound }) {
   const questions = mission.quiz
   const [qi, setQi] = useState(0)
   const [selected, setSelected] = useState([])
@@ -12,10 +12,11 @@ export default function Quiz({ mission, onFinish }) {
   const [finished, setFinished] = useState(false)
 
   const q = questions[qi]
-  const dmg = Math.ceil(MAX_HP / questions.length) // dégâts par mauvaise réponse
+  const dmg = Math.ceil(MAX_HP / questions.length)
 
   const toggle = (i) => {
     if (checked) return
+    playSound?.('click')
     if (q.type === 'single') setSelected([i])
     else setSelected((s) => (s.includes(i) ? s.filter((x) => x !== i) : [...s, i]))
   }
@@ -30,18 +31,25 @@ export default function Quiz({ mission, onFinish }) {
     if (selected.length === 0) return
     const ok = isCorrectSet()
     setChecked(true)
-    if (ok) setCorrectCount((c) => c + 1)
-    else setHp((h) => Math.max(0, h - dmg))
+    if (ok) {
+      setCorrectCount((c) => c + 1)
+      playSound?.('correct')
+    } else {
+      setHp((h) => Math.max(0, h - dmg))
+      playSound?.('wrong')
+    }
   }
 
   const next = () => {
     if (qi + 1 < questions.length) {
+      playSound?.('nav')
       setQi(qi + 1)
       setSelected([])
       setChecked(false)
     } else {
       const score = Math.round((correctCount / questions.length) * 100)
       setFinished(true)
+      playSound?.(score >= 80 ? 'victory' : 'wrong')
       onFinish?.(score)
     }
   }
@@ -50,7 +58,7 @@ export default function Quiz({ mission, onFinish }) {
     const score = Math.round((correctCount / questions.length) * 100)
     const passed = score >= 80
     return (
-      <div className={`quiz-result ${passed ? 'win' : 'lose'}`}>
+      <div className={`quiz-result glass ${passed ? 'win' : 'lose'}`}>
         <div className="big-emoji">{passed ? '🏆' : '💥'}</div>
         <h3>{passed ? 'Boss vaincu !' : 'Le Boss résiste…'}</h3>
         <p className="score-line">Score : <strong>{score}%</strong> ({correctCount}/{questions.length})</p>
@@ -59,9 +67,13 @@ export default function Quiz({ mission, onFinish }) {
         ) : (
           <p>Il faut <strong>≥ 80 %</strong> pour valider la mission. Révise le Codex et les flashcards, puis réessaie.</p>
         )}
-        <button className="btn" onClick={() => {
-          setQi(0); setSelected([]); setChecked(false); setHp(MAX_HP); setCorrectCount(0); setFinished(false)
-        }}>
+        <button
+          className="btn"
+          onClick={() => {
+            playSound?.('click')
+            setQi(0); setSelected([]); setChecked(false); setHp(MAX_HP); setCorrectCount(0); setFinished(false)
+          }}
+        >
           Rejouer le Boss
         </button>
       </div>
@@ -96,7 +108,7 @@ export default function Quiz({ mission, onFinish }) {
           }
           return (
             <button key={i} className={cls} onClick={() => toggle(i)} disabled={checked}>
-              <span className="opt-mark">{checked ? (o.ok ? '✓' : sel ? '✗' : '') : (sel ? '●' : '○')}</span>
+              <span className="opt-mark">{checked ? (o.ok ? '✓' : sel ? '✗' : '') : sel ? '●' : '○'}</span>
               <span>{o.t}</span>
             </button>
           )

@@ -2,7 +2,7 @@ import React from 'react'
 import { MISSIONS } from '../data/missions.js'
 import { isUnlocked } from '../useGame.js'
 
-export default function WorldMap({ save, onOpen }) {
+export default function WorldMap({ save, onOpen, playSound }) {
   return (
     <div className="map">
       <div className="map-intro">
@@ -22,10 +22,15 @@ export default function WorldMap({ save, onOpen }) {
             <React.Fragment key={m.id}>
               {i > 0 && <div className={`path-link ${unlocked ? 'lit' : ''}`} />}
               <button
-                className={`node ${unlocked ? '' : 'locked'} ${done ? 'done' : ''} ${m.isFinal ? 'final' : ''}`}
+                className={`node glass ${unlocked ? '' : 'locked'} ${done ? 'done' : ''} ${m.isFinal ? 'final' : ''}`}
                 style={{ '--node-color': m.color }}
                 disabled={!unlocked}
-                onClick={() => unlocked && onOpen(m.id)}
+                onMouseEnter={() => unlocked && playSound?.('click')}
+                onClick={() => {
+                  if (!unlocked) return
+                  playSound?.('nav')
+                  onOpen(m.id)
+                }}
               >
                 <span className="node-icon">{unlocked ? m.icon : '🔒'}</span>
                 <span className="node-body">
